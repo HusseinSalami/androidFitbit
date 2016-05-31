@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/scrollView1"
+    android:layout_width="fill_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:ap="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Maladie 1"
+            android:gravity="center"
+            android:layout_marginTop="15dp"
+            android:textColor="@color/ap_white"
+            android:id="@+id/maladie_id"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="symptome sdsdsdsadas"
+            android:layout_marginTop="30dp"
+            android:gravity="center"
+            android:textColor="@color/ap_white"
+            android:id="@+id/pnn50_id"/>
+
+    </LinearLayout>
+
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/HRVplot"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginTop="20dp"/>
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/RRRplot"
+        android:layout_width="match_parent"
+        android:layout_height="200dp" />
+</LinearLayout>
+    </ScrollView>
