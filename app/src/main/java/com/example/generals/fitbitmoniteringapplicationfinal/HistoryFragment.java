@@ -56,10 +56,11 @@ public class HistoryFragment extends Fragment {
         context=rootView.getContext();
         historyList=(ListView)rootView.findViewById(R.id.history_listview_id);
         sharedPreferences=getActivity().getSharedPreferences(MyPreferences, 0);
-
+   //     arrayHistory=new ArrayList<>();
 
         if(arrayHistory.isEmpty())
         {
+
             try {
                 Void str= new GetHistory(context).execute().get();
             } catch (InterruptedException e) {
@@ -67,12 +68,19 @@ public class HistoryFragment extends Fragment {
             } catch (ExecutionException e) {
                 e.printStackTrace();
             }
+
+
+            listAdapter=new ListHistoryAdapter(context,arrayHistory);
+            historyList.setAdapter(listAdapter);
+            listAdapter.notifyDataSetChanged();
+            //  new  GetHistory(context).execute();
         }
 
         else
         {
             this.setRetainInstance(true);
             historyList.setAdapter(listAdapter);
+            listAdapter.notifyDataSetChanged();
         }
 
         listAdapter.setButtonListenerHistory(new ListHistoryAdapter.ButtonListenerHistory() {
@@ -152,14 +160,16 @@ public class HistoryFragment extends Fragment {
             // Making a request to url and getting response
         // fix the url to retrieve the history for this user having id id1;
 //url va me renvoyer les history hrv qui sont pas malades;
-
-            url=url+"?username="+sharedPreferences.getString("username", "rien");
+            String urlGeorge=url+"?username="+sharedPreferences.getString("username", "rien");
+           // url=url+"?username="+sharedPreferences.getString("username", "rien");
 //url2 va me renvoyer les history hrv qui sont m
 // alades
-            url2=url2+"?username="+sharedPreferences.getString("username","rien");
+            String urlHussein=url2+"?username="+sharedPreferences.getString("username","rien");
 
-            String jsonStr = sh.makeServiceCall(url, ServiceHandler.GET);
-            String jsonStr2=sh.makeServiceCall(url2,ServiceHandler.GET);
+      //      url2=url2+"?username="+sharedPreferences.getString("username","rien");
+
+            String jsonStr = sh.makeServiceCall(urlGeorge, ServiceHandler.GET);
+            String jsonStr2=sh.makeServiceCall(urlHussein,ServiceHandler.GET);
 
             Log.d("Response: ", "> " + jsonStr);
             Log.d("Response: ", "> " + jsonStr2);
@@ -203,11 +213,11 @@ public class HistoryFragment extends Fragment {
 
                         //c dans le cas ou je cherche les history hrv qui sont pas malades;
                         history_objet_malade.setMaladie(object_i_malade.getString("nom"));
-                        history_objet_malade.setIdHistory(object_i.getInt("idHistory"));
-                        history_objet.setPnn50(object_i.getInt("pnn50"));
+                        history_objet_malade.setIdHistory(object_i_malade.getInt("idHistory"));
+                        history_objet_malade.setPnn50(object_i_malade.getInt("pnn50"));
 
                         // history_objet.setMaladieLogo();
-                        arrayHistory.add(history_objet);
+                        arrayHistory.add(history_objet_malade);
                     }
 
 
@@ -230,10 +240,11 @@ public class HistoryFragment extends Fragment {
             if (pDialog.isShowing())
                 pDialog.dismiss();
 
-            listAdapter=new ListHistoryAdapter(context,arrayHistory);
-            historyList.setAdapter(listAdapter);
+//            listAdapter=new ListHistoryAdapter(context,arrayHistory);
+ //           historyList.setAdapter(listAdapter);
 
         }
+
     }
 
 }

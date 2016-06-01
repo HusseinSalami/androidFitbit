@@ -1,5 +1,6 @@
 package com.example.generals.fitbitmoniteringapplicationfinal;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -12,6 +13,24 @@ public class HistoryHrv {
     int idHistoryHrv;
     List<HrvValue> list_valeur;
     int pnn50;
+
+    public HistoryHrv(HistoryRr historyRr) {
+        idHistoryHrv = historyRr.getIdHistoryRr();
+        list_valeur = new ArrayList<>();
+        pnn50 = 0;
+        RrValue lastValue = null;
+        for (RrValue rrValue : historyRr.getList_rr_value()) {
+            if (lastValue != null) {
+                HrvValue hrvValue = new HrvValue();
+                hrvValue.setValue(Math.abs(rrValue.getValue() - lastValue.getValue()));
+                if (hrvValue.getValue() > 0.05) {
+                    pnn50++;
+                }
+                list_valeur.add(hrvValue);
+            }
+            lastValue = rrValue;
+        }
+    }
 
     public int getPnn50() {
         return pnn50;

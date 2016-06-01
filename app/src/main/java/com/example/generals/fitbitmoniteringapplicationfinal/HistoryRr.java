@@ -1,5 +1,6 @@
 package com.example.generals.fitbitmoniteringapplicationfinal;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -10,6 +11,11 @@ public class HistoryRr {
     List<RrValue> list_rr_value;
     int idHistoryRr;
     String user;
+
+    public HistoryRr(int id) {
+        idHistoryRr = id;
+        list_rr_value = new ArrayList<>();
+    }
 
     public List<RrValue> getList_rr_value() {
         return list_rr_value;

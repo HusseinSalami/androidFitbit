@@ -10,6 +10,7 @@ import android.graphics.Rect;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.view.DragEvent;
 import android.view.LayoutInflater;
@@ -71,7 +72,7 @@ public class MainActivity extends AppCompatActivity
 
         if(sharedPreferences.getBoolean(toRegister,true))
         {
-            Toast.makeText(MainActivity.this, "first time", Toast.LENGTH_SHORT).show();
+      //     Toast.makeText(MainActivity.this, "first time", Toast.LENGTH_SHORT).show();
             RegisterFragment register_fragment=new RegisterFragment();
             FragmentManager main_manager=getSupportFragmentManager();
 
@@ -90,7 +91,7 @@ public class MainActivity extends AppCompatActivity
 
             main_manager.beginTransaction().replace(R.id.container,mainFragment).commit();
 
-            Toast.makeText(MainActivity.this, "Not first time", Toast.LENGTH_SHORT).show();
+       //    Toast.makeText(MainActivity.this, "Not first time", Toast.LENGTH_SHORT).show();
         }
     }
 

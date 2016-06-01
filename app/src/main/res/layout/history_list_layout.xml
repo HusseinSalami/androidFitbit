@@ -4,25 +4,27 @@
     android:layout_height="match_parent">
 
     <ImageView
-        android:layout_width="40dp"
+        android:layout_width="0dp"
+        android:layout_weight="0.25"
         android:layout_height="40dp"
         android:id="@+id/maladie_logo"
         android:padding="10dp"
         />
 
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
+        android:layout_weight="0.60"
         android:layout_height="wrap_content"
         android:id="@+id/maladie_name"
         android:padding="10dp"
-        android:layout_marginLeft="100dp"
         android:gravity="center"/>
 
     <ImageView
-        android:layout_width="40dp"
+        android:layout_width="0dp"
+        android:layout_weight="0.15"
         android:layout_height="40dp"
         android:id="@+id/fleche_logo"
         android:padding="10dp"
         android:src="@mipmap/ic_fleche_logo"
-        android:layout_marginLeft="100dp"/>
+        />
 </LinearLayout>

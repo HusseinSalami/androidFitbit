@@ -113,52 +113,7 @@
 
             </LinearLayout>
 
-     <!--
-            <LinearLayout
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:paddingLeft="5dp"
-                android:layout_marginTop="15dp"
-                android:id="@+id/maladie_layout"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Maladie"
-                    android:textSize="20sp"/>
-                <RadioButton
-                    android:id="@+id/radioMaladi1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="diabete"
-                    />
 
-                <RadioButton
-                    android:id="@+id/radioMaladi2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="diarer" />
-
-
-                <RadioButton
-                    android:id="@+id/radioMaladi3"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="hemoragie" />
-
-            </LinearLayout>
--->
-
-          <!--  <Button android:layout_width="190dp"
-                android:layout_height="38dp"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="16dp"
-                android:text="submit"
-                android:textColor="#fff"
-                android:textSize="13dp"
-                android:background="@color/colorPrimaryDark"/>
-
--->
         </LinearLayout>
 
 

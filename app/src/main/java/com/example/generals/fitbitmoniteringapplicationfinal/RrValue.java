@@ -1,10 +1,18 @@
 package com.example.generals.fitbitmoniteringapplicationfinal;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class RrValue {
 
     int id_rr_value;
     double value;
     double time;
+
+    public RrValue(JSONObject obj) {
+        id_rr_value = obj.optInt("idRRValue");
+        value = obj.optDouble("value");
+    }
 
     public int getId_rr_value() {
         return id_rr_value;

@@ -41,6 +41,7 @@ import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Created by generals on 05/09/2016.
@@ -76,7 +77,7 @@ public class HistoryDetailsFragment extends Fragment {
 
     //json history malade
     JSONArray array_json_rr=null;
-    private static String url2 = "http://192.168.43.103/getRR";
+    private static String url2 = "http://192.168.43.103/getRR.php";
     RrValue rr_objet=null;
     JSONObject object_i_rr=null;
 
@@ -87,7 +88,7 @@ public class HistoryDetailsFragment extends Fragment {
         bundle= this.getArguments();
         context=rootView.getContext();
 
-        url2 = "http://192.168.43.103/getRR";
+        url2 = "http://192.168.43.103/getRR.php";
         url = "http://192.168.43.103/getHRV.php";
 
         id_history=bundle.getInt("history_id");
@@ -134,10 +135,17 @@ public class HistoryDetailsFragment extends Fragment {
     */
 
 
-        new GetHistoryGraph(context).execute();
+        try {
+            Void strg=  new GetHistoryGraph(context).execute().get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
 
-        LineDataSet dataset=createSet(entries,"HRV signal");
-        LineDataSet datasetRR=createSet(entriesRR,"RR signal");
+
+        LineDataSet dataset=createSet(entries,"HRV signal x10e3");
+        LineDataSet datasetRR=createSet(entriesRR,"RR signal x10e2");
 
 
         ArrayList<String> labels = new ArrayList<String>();
@@ -145,12 +153,12 @@ public class HistoryDetailsFragment extends Fragment {
 
         for(int j=0;j<entries.size();++j)
         {
-            labels.add("");
+            labels.add("       ");
         }
 
         for(int j=0;j<entriesRR.size();++j)
         {
-            labelsRR.add("");
+            labelsRR.add("        ");
         }
 
         LineData data = new LineData(labels, dataset);
@@ -169,26 +177,29 @@ public class HistoryDetailsFragment extends Fragment {
         lRR.setForm(Legend.LegendForm.LINE);
         lRR.setTextColor(Color.WHITE);
 
+
         XAxis x1=lineChart.getXAxis();
         x1.setTextColor(Color.WHITE);
         x1.setDrawGridLines(false);
         x1.setAvoidFirstLastClipping(true);
+        x1.setAxisMaxValue(2000f);
 
         XAxis x1RR=lineChartRR.getXAxis();
         x1RR.setTextColor(Color.WHITE);
         x1RR.setDrawGridLines(false);
         x1RR.setAvoidFirstLastClipping(true);
+        x1RR.setAxisMaxValue(2000f);
 
         YAxis y1=lineChart.getAxisLeft();
         y1.setTextColor(Color.WHITE);
-        y1.setAxisMaxValue(220f);
-        y1.setAxisMinValue(-100f);
+        y1.setAxisMaxValue(500f);
+        y1.setAxisMinValue(0f);
         y1.setDrawGridLines(true);
 
         YAxis y1RR=lineChartRR.getAxisLeft();
         y1RR.setTextColor(Color.WHITE);
-        y1RR.setAxisMaxValue(220f);
-        y1RR.setAxisMinValue(-100f);
+        y1RR.setAxisMaxValue(175f);
+        y1RR.setAxisMinValue(0f);
         y1RR.setDrawGridLines(true);
 
         lineChart.setData(data);
@@ -201,7 +212,7 @@ public class HistoryDetailsFragment extends Fragment {
         int pnn50Value=bundle.getInt("pnn50_value");
 
         maladie.setText(maladieValue);
-        pnn.setText(""+pnn50Value);
+        pnn.setText("pnn50 = "+pnn50Value*(100.0/array_hrv.size())+" %");
 
         return rootView;
     }
@@ -253,11 +264,14 @@ public class HistoryDetailsFragment extends Fragment {
             // Making a request to url and getting response
             // fix the url to retrieve the history for this user having id id1;
 
-            url=url+"?idHistory="+id_history;
-            url2=url2+"?idHistory"+id_history;
+            String urlHr;
+            String urlRr;
 
-            String jsonStr = sh.makeServiceCall(url, ServiceHandler.GET);//get json hrv;
-            String jsonStr2=sh.makeServiceCall(url2,ServiceHandler.GET);//get json rr;
+            urlHr=url+"?idHistory="+id_history;
+            urlRr=url2+"?idHistory="+id_history;
+
+            String jsonStr = sh.makeServiceCall(urlHr, ServiceHandler.GET);//get json hrv;
+            String jsonStr2=sh.makeServiceCall(urlRr,ServiceHandler.GET);//get json rr;
 
             Log.d("Response: ", "> " + jsonStr);
             Log.d("Response: ", "> " + jsonStr2);
@@ -283,7 +297,7 @@ public class HistoryDetailsFragment extends Fragment {
                             hrv_objet.setValue(object_i.getDouble("value"));
                         //    hrv_objet.setTime(object_i.getDouble("hrv_time"));
                             //remplir graph
-                            entries.add(new Entry((float)hrv_objet.getValue(), i));
+                            entries.add(new Entry((float)hrv_objet.getValue()*1000, i));
                             //entries.add(new Entry(4f, 0));
                             array_hrv.add(hrv_objet);
                     }
@@ -293,14 +307,9 @@ public class HistoryDetailsFragment extends Fragment {
                     {
                         object_i_rr=array_json_rr.getJSONObject(i);
 
-                        rr_objet=new RrValue();
-
-                        rr_objet.setId_rr_value(object_i_rr.getInt("idRRValue"));
-                        //idRRValue
-                        rr_objet.setValue(object_i.getDouble("value"));
-                      //  rr_objet.setTime(object_i.getDouble("rr_time"));
+                        rr_objet=new RrValue(object_i_rr);
                         //remplir graph
-                        entriesRR.add(new Entry((float)rr_objet.getValue(), i));
+                        entriesRR.add(new Entry((float)rr_objet.getValue()*100, i));
                         //
                         array_rr.add(rr_objet);
                     }

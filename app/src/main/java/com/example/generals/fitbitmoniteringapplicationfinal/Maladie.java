@@ -8,7 +8,7 @@ import java.util.List;
 public class Maladie {
     int idMaladie;
     String nom;
-    List<Symptomes> list_Ingredient;
+    List<Symptomes> list_symptomes;
 
     public int getIdMaladie() {
         return idMaladie;
@@ -26,11 +26,11 @@ public class Maladie {
         this.nom = nom;
     }
 
-    public List<Symptomes> getList_Ingredient() {
-        return list_Ingredient;
+    public List<Symptomes> getList_Symptomes() {
+        return list_symptomes;
     }
 
-    public void setList_Ingredient(List<Symptomes> list_Ingredient) {
-        this.list_Ingredient = list_Ingredient;
+    public void setList_symptomes(List<Symptomes> list_symptomes) {
+        this.list_symptomes = list_symptomes;
     }
 }

@@ -10,9 +10,10 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Path;
 import android.graphics.Rect;
-import android.net.LinkAddress;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.DrawerLayout;
@@ -20,8 +21,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AbsListView;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
@@ -38,14 +41,17 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.utils.ColorTemplate;
 
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 public class MainFragment extends Fragment{
 
@@ -62,6 +68,8 @@ public class MainFragment extends Fragment{
     Bitmap bitmap;
     String picturePath;
 
+    private boolean isDone = false;
+
     private LineChart mChart;
     private LineChart mChartRR;
     private static String ip="192.168.43.103";
@@ -74,6 +82,13 @@ public class MainFragment extends Fragment{
     private static String url_getMaladie = "http://"+ip+"/allMaladies.php";
 
     private static String url_updatePnn50 = "http://"+ip+"/updatePNN.php";
+
+    private static Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    private int hrvListOuterIndex;
+    private int hrvListInnerIndex;
+
+    private static boolean alreadyStarted = false;
 
     JSONArray array_maladie=null;
     JSONObject object_i_maladie=null;
@@ -91,12 +106,6 @@ public class MainFragment extends Fragment{
     List<HistoryHrv> list_hrv=new ArrayList<HistoryHrv>();
     List<HistoryRr> list_rr=new ArrayList<HistoryRr>();
 
-    int i;
-    int j;
-    int k;
-    int m;
-    int id;
-
     String maladie_nom="";
     int id_hrv_malade=-1;
     String jsonStr2;
@@ -106,7 +115,31 @@ public class MainFragment extends Fragment{
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
 
+
         rootView=inflater.inflate(R.layout.main_fragment_layout, container, false);
+
+        View keybordView=getActivity().getCurrentFocus();
+
+        if(keybordView!=null)
+        {
+            InputMethodManager imm=(InputMethodManager)getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(keybordView.getWindowToken(),0);
+        }
+        if(list_maladie.isEmpty())
+        {
+            ArrayList<String> symp = new ArrayList<String>();
+            symp.add("Fatigue");
+            symp.add("Anxiete");
+            symp.add("Diarrhee");
+            InitierMaladie("Fibrilation-Ventriculaire", symp);
+
+            symp=new ArrayList<>();
+            symp.add("Court Souffle");
+            symp.add("Malaise Poitrine");
+            symp.add("Difficulte Effort Physique");
+            InitierMaladie("Flutter", symp);
+        }
+
 
         url_InsertMaladie="http://"+ip+"/addHistoryMaladie.php";
         url_InsertHrv = "http://"+ip+"/addHRV.php";
@@ -114,7 +147,6 @@ public class MainFragment extends Fragment{
         //  url_getMaladie = "http://"+ip+"/getHRVHistory.php";
 
         url_updatePnn50 = "http://"+ip+"/updatePNN.php";
-
         url = "http://"+ip+"/getRRHistory.php";
 
         url_getMaladie = "http://"+ip+"/allMaladies.php";
@@ -153,7 +185,7 @@ public class MainFragment extends Fragment{
 
         YAxis y1=mChart.getAxisLeft();
         y1.setTextColor(Color.WHITE);
-        y1.setAxisMaxValue(300f);
+        y1.setAxisMaxValue(500f);
         y1.setAxisMinValue(0f);
         y1.setDrawGridLines(true);
 
@@ -206,8 +238,9 @@ public class MainFragment extends Fragment{
             @Override
             public void onDrawerSlide(View drawerView, float slideOffset) {
                 View header = (View) drawer.findViewById(R.id.header);
-
+                String usernamePost;
                 ImageView profile_header = (ImageView) header.findViewById(R.id.profile);
+                TextView profile_name=(TextView)header.findViewById(R.id.nav_username_id);
 
                 if (sharedPreferences.contains(imagePath)) {
                     picturePath = sharedPreferences.getString(imagePath, "rien");
@@ -219,8 +252,19 @@ public class MainFragment extends Fragment{
                 }
 
                 bitmap = getRoundedShape(bitmap);
-
                 profile_header.setImageBitmap(Bitmap.createScaledBitmap(bitmap, 500, 500, false));
+
+
+                if(sharedPreferences.contains("username"))
+                {
+                    usernamePost= sharedPreferences.getString("username","rien");
+                }
+                else
+                {
+                    usernamePost="username";
+                }
+
+                profile_name.setText(usernamePost);
 
             }
 
@@ -243,45 +287,73 @@ public class MainFragment extends Fragment{
         return rootView;
     }
 
+    private void InitierMaladie(String maladie,ArrayList<String> symp) {
+        Maladie m=new Maladie();
+        List<Symptomes> s=new ArrayList<>();
+        Symptomes sym = new Symptomes();
+       for(int i=0;i<symp.size();++i) {
+           sym=new Symptomes();
+           sym.setSymptomes(symp.get(i));
+           s.add(sym);
+       }
+
+        m.setNom(maladie);
+        m.setList_symptomes(s);
+
+        list_maladie.add(m);
+
+
+    }
+
     private void showMaladies() {
         //get All maladies;
+        // Toast.makeText(rootView.getContext(),"dialog error",Toast.LENGTH_LONG).show();
 
-        final Dialog dialog = new Dialog(context);
+        final Dialog dialog = new Dialog(getActivity());
 
         dialog.setContentView(R.layout.custom_box_layout);
+        dialog.getWindow().setBackgroundDrawableResource(R.color.colorPrimaryDark);
+        dialog.getWindow().setTitleColor(Color.WHITE);
+        LinearLayout main_linear = (LinearLayout) dialog.findViewById(R.id.dialog_main_layout);
 
-        LinearLayout main_linear =(LinearLayout)dialog.findViewById(R.id.dialog_main_layout);
+        ScrollView scroll = (ScrollView)dialog.findViewById(R.id.dialog_scroll_view);
 
-        ScrollView scroll = new ScrollView(context);
+        LinearLayout scrollContainer = new LinearLayout(context);
+        scrollContainer.setOrientation(LinearLayout.VERTICAL);
+        scrollContainer.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        scroll.addView(scrollContainer);
 
-        scroll.setLayoutParams(new AbsListView.LayoutParams(AbsListView.LayoutParams.MATCH_PARENT,
-                AbsListView.LayoutParams.MATCH_PARENT));
+        dialog.setTitle("Symptomes");
 
-        main_linear.addView(scroll);
+        final HashMap<Integer, RadioButton> buttons = new HashMap<>();
 
-        LinearLayout LL = new LinearLayout(context);
-
-        dialog.setTitle("maladies...");
-
-        for(int i=0;i<list_maladie.size();++i)
-        {
-            LL = new LinearLayout(context);
+        for (int i = 0; i < list_maladie.size(); ++i) {
+            LinearLayout LL = new LinearLayout(context);
             LL.setOrientation(LinearLayout.VERTICAL);
             LL.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            LL.setId(i);
-            String symptText="";
-            TextView sympt=new TextView(context);
+            String symptText = "";
+            TextView sympt = new TextView(context);
             sympt.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-            LinearLayout LL_header=new LinearLayout(context);
+            LinearLayout LL_header = new LinearLayout(context);
             LL_header.setOrientation(LinearLayout.HORIZONTAL);
             LL_header.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
             //                            TextView maladieDescription =new TextView(context);
-            RadioButton butMaladie=new RadioButton(context);
-
-            butMaladie.setId(i);
-
+            RadioButton butMaladie = new RadioButton(context);
+            butMaladie.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                    if (b) {
+                        for (RadioButton r : buttons.values()) {
+                            if (r != compoundButton) {
+                                r.setChecked(false);
+                            }
+                        }
+                    }
+                }
+            });
+            buttons.put(i, butMaladie);
             //                              maladieDescription.setText(list_maladie.get(i).getNom());
 
             //                            LL_header.addView(maladieDescription);
@@ -289,173 +361,110 @@ public class MainFragment extends Fragment{
 
             LL.addView(LL_header);
 
-            for(int j=0;j<list_maladie.get(i).getList_Ingredient().size();++j)
-            {
-                symptText=symptText+list_maladie.get(i).getList_Ingredient().get(j).getSymptomes()+"\n";
-            }
+            for(Symptomes symptomes : list_maladie.get(i).getList_Symptomes()) {
+                symptText = symptText + symptomes.getSymptomes() + "\n \n ";
 
+            }
+            sympt.setTextColor(Color.WHITE);
             sympt.setText(symptText);
 
             LL.addView(sympt);
-            scroll.addView(LL);
+            scrollContainer.addView(LL);
         }
 
         // main_linear.addView(LL);
 
-        Button confirm =new Button(context);
-        confirm.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        confirm.setText("confirm");
-        main_linear.addView(confirm);
-
+        Button confirm = (Button)main_linear.findViewById(R.id.dialog_confirm_button);
         confirm.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                int position=-1;
-                int count=0;
-                for(int i=0;i<list_maladie.size();++i)
-                {
+                int position = -1;
+                int count = 0;
+                for (int i = 0; i < list_maladie.size(); ++i) {
 
-                    RadioButton radio= (RadioButton)dialog.findViewById(i);
-                    if(radio.isChecked())
-                    {
+                    RadioButton radio = buttons.get(i);
+                    if (radio.isChecked()) {
                         //jaurai besoin de la valeur pour envoyer a la base de donner et pour
                         //faire insert dans la table des hrv malade le id du hrv malade avec la maladie;
-                        position=i;
+                        position = i;
                         count++;
                         // break;
-                    }
-                    else
-                    {
+                    } else {
                         //rien
                     }
 
                 }
-                if(count>1)
-                {
+                if (count > 1) {
                     Snackbar.make(view, "choose one section of symptoms", Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
 
-                }
-                else
-                {
-                    insertMaladie(list_hrv.get(i).getIdHistoryHrv(),position);
+                } else {
+                    insertMaladie(list_hrv.get(hrvListOuterIndex).getIdHistoryHrv(), position);
                     dialog.dismiss();
-                    if(position==-1)
-                    {
-                        Toast.makeText(context,"you are suffering from bloc auriculo-ventriculaire",Toast.LENGTH_LONG).show();
-                    }
-                    else
-                    {
-                        Toast.makeText(context,"you are suffering from "+list_maladie.get(position).getNom(),Toast.LENGTH_LONG).show();
+                    if (position == -1) {
+                        Toast.makeText(context, "you are suffering from bloc auriculo-ventriculaire", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(context, "you are suffering from " + list_maladie.get(position).getNom(), Toast.LENGTH_LONG).show();
                     }
 
+
                 }
+                processChunk();
             }
         });
+        dialog.setCancelable(false);
 
         dialog.show();
+    }
 
+    private boolean checkForMaladies(HistoryHrv historyHrv) {
+        if(historyHrv.getPnn50()<0.03*historyHrv.getList_valeur().size() || historyHrv.getPnn50()>0.75*historyHrv.getList_valeur().size())
+        {
+            showMaladies();
+            return true;
+        }
+        return false;
+    }
+
+    private void processChunk(){
+        if (isDone) return;
+
+        HistoryHrv historyHrv = list_hrv.get(hrvListOuterIndex);
+        HrvValue hrvValue = historyHrv.getList_valeur().get(hrvListInnerIndex);
+        HistoryRr historyRr = list_rr.get(hrvListOuterIndex);
+        RrValue rrValue = historyRr.getList_rr_value().get(hrvListInnerIndex);
+
+        addEntry(hrvValue.getValue()*1000,rrValue.getValue()*100,"HRV signal (x10e3)","RR signal(x10e2)");
+
+        boolean shouldStop = false;
+        hrvListInnerIndex++;
+        if (hrvListInnerIndex >= historyHrv.getList_valeur().size()) {
+            hrvListInnerIndex = 0;
+            hrvListOuterIndex++;
+            shouldStop = shouldStop || checkForMaladies(historyHrv);
+            if (hrvListOuterIndex >= list_hrv.size()) {
+                hrvListOuterIndex = 0;
+                isDone = true;
+                shouldStop = true;
+            }
+        }
+
+        if (shouldStop) {
+            return;
+        }
+        mainHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                processChunk();
+            }
+        }, 300);
     }
 
     private void continueProcessingData() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                if (list_hrv.isEmpty())
-                {
-                    for (int i = 0; i < 100; ++i) {
-                        getActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                addEntry("hrv signal");
-
-                            }
-                        });
-                        try {
-                            Thread.sleep(600);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-                else
-                {
-                    for(i=0;i<list_hrv.size();++i)
-                    {
-                        Runnable th1=null, th2 = null;
-                        //creer la liste dans laquelle je vais compter les valeurs qui sont mauvaises par rapport
-                        for (j = 0; j < list_hrv.get(i).getList_valeur().size();++j)
-                        {
-
-                            th1=new Runnable() {
-                                @Override
-                                public void run()
-                                {
-                                    addEntry(list_hrv.get(i).getList_valeur().get(j).getValue() * 1000, list_rr.get(i).getList_rr_value().get(j).getValue() * 100, "HRV signal (x10e3)", "RR signal(x10e2)");
-
-                                /*    if (j == list_hrv.get(i).getList_valeur().size())
-                                    {
-                                        if(list_hrv.get(i).getPnn50()<0.03*list_hrv.get(i).getList_valeur().size() || list_hrv.get(i).getPnn50()>0.75*list_hrv.get(i).getList_valeur().size())
-                                        {
-                                            new GetMaladie(context).execute();
-
-                                        }
-                                        else
-                                        {
-                                            //on affiche rien; on continue par le deuxieme signal;
-                                        }
-
-                                    }
-                                    else
-                                    {
-                                        ;
-                                    }
-                                    */
-
-
-                                }
-                            };
-
-                            getActivity().runOnUiThread(th1);
-                            try {
-                                Thread.sleep(600);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                      if(list_hrv.get(i).getPnn50()<0.03*list_hrv.get(i).getList_valeur().size() || list_hrv.get(i).getPnn50()>0.75*list_hrv.get(i).getList_valeur().size())
-                        {
-                            try {
-                                synchronized (th2) {
-
-                                    th1.();
-                                    th2=new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            new GetMaladie(context).execute();
-                                        }
-                                    };
-                                    getActivity().runOnUiThread(th2);
-                                    th2.notifyAll();
-                                }
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-
-                        }
-                        else
-                        {
-                            //on affiche rien; on continue par le deuxieme signal;
-                        }
-
-                    }
-
-                }
-
-
-            }
-        }).start();
+        hrvListOuterIndex = 0;
+        hrvListInnerIndex = 0;
+        processChunk();
     }
 
     @Override
@@ -465,6 +474,9 @@ public class MainFragment extends Fragment{
         //ensuite iterer sur chaque signal, en faisant addEntry pour chaque valeur ;
 
         //
+        if (alreadyStarted) return;
+        alreadyStarted = true;
+
         new GetHistoryGraph(context).execute();
     }
 
@@ -658,192 +670,57 @@ public class MainFragment extends Fragment{
             url=url+"?username="+userName;
             String jsonStr = sh.makeServiceCall(url, ServiceHandler.GET);
 
+            Log.v("GetHistory", jsonStr);
             int pnn50=0;
 
 
             Log.d("Response: ", "> " + jsonStr);
 
+            HashMap<Integer, HistoryRr> signals = new HashMap<>();
+
             if (jsonStr != null) {
                 try {
                     JSONObject jsonObjRR = new JSONObject(jsonStr);
 
-                    array_json_rr= jsonObjRR.getJSONArray("data");
-///ha yotla3le hon tous les signaux rr wara ba3edd;; ta a3ref hot les signaux le ma3 ba3ed bi nafse l signal lezm etala3 bil id;lama yet8ayar l id
-                    id=-1;
-                    List<RrValue> valuesRr=new ArrayList<>();
-                    HistoryRr rr=new HistoryRr();
+                    array_json_rr = jsonObjRR.getJSONArray("data");
 
-                    List<HrvValue> valuesHrv=new ArrayList<>();
-                    HistoryHrv hrv=new HistoryHrv();
-
-                    for(int i=0;i<array_json_rr.length();++i) {
-
-                        url_InsertMaladie="http://"+ip+"/addHistoryMaladie.php";
-                        url_InsertHrv = "http://"+ip+"/addHRV.php";
-                        //       url_getMaladie = "http://"+ip+"/getHRVHistory.php";
-                        url_updatePnn50 = "http://"+ip+"/updatePNN.php";
-                        url = "http://"+ip+"/getRRHistory.php";
-
-                        object_i_rr=array_json_rr.getJSONObject(i);
-
-                        if(id==-1)
-                        {
-                            //1er iteration
-                            id=object_i_rr.getInt("idHistory");
-                            rr=new HistoryRr();
-                            rr.setIdHistoryRr(id);
-                            //       rr.setIdHistoryRr(object_i_rr.getInt("idHistory"));
-                            valuesRr=new ArrayList<>();
-                            RrValue r=new RrValue();
-                            r.setValue(object_i_rr.getDouble("value"));
-                            r.setId_rr_value(object_i_rr.getInt("idRRValue"));
-                            //   r.setTime(object_i_rr.getInt("time"));
-                            valuesRr.add(r);
-                            //       hrv.setIdHistoryHrv(object_i_rr.getInt("idHistory"));
-                            hrv.setIdHistoryHrv(id);
+                    for (int i = 0; i < array_json_rr.length(); i++) {
+                        JSONObject jsonHistoryElement = array_json_rr.getJSONObject(i);
+                        int idHistory = jsonHistoryElement.getInt("idHistory");
+                        RrValue rrValue = new RrValue(jsonHistoryElement);
+                        HistoryRr historyRr = signals.get(idHistory);
+                        if (historyRr == null) {
+                            historyRr = new HistoryRr(idHistory);
+                            signals.put(idHistory, historyRr);
                         }
-
-                        else
-                        {
-                            if(id==object_i_rr.getInt("idHistory"))
-                            {
-                                RrValue r=new RrValue();
-                                r.setValue(object_i_rr.getDouble("value"));
-                                r.setId_rr_value(object_i_rr.getInt("idRRValue"));
-                                //   r.setTime(object_i_rr.getInt("time"));
-                                valuesRr.add(r);
-
-                                HrvValue h=new HrvValue();
-                                if(object_i_rr.getDouble("value")<array_json_rr.getJSONObject(i-1).getDouble("value"))
-                                {
-                                    h.setValue(array_json_rr.getJSONObject(i-1).getDouble("value")-object_i_rr.getDouble("value"));
-                                }
-                                else
-                                {
-                                    h.setValue(object_i_rr.getDouble("value")-array_json_rr.getJSONObject(i-1).getDouble("value"));
-                                }
-
-                                if(h.getValue()>0.05)
-                                {
-                                    ++pnn50;
-                                }
-
-                                //     h.setTime(array_json_rr.getJSONObject(i - 1).getInt("time"));
-                                valuesHrv.add(h);
-
-                                url_InsertHrv=url_InsertHrv+"?"+"idHistory="+hrv.getIdHistoryHrv()+"&value="+h.getValue()+"&pnn50=0";
-
-                                //url_InsertHrv=url_InsertHrv+"?"+"idHistory="+object_i_rr.getInt("idHistory")+"&value="+h.getValue()+"&pnn50=0";
-
-                                //   url_InsertHrv=url_InsertHrv+"?"+"idHistory="+counter+"&value="+h.getValue()+"&pnn50=0";
-                                jsonStr3=sh.makeServiceCall(url_InsertHrv,ServiceHandler.GET);
-
-                                if (jsonStr3 != null) {
-                                    try {
-                                        JSONObject jsonObj = new JSONObject(jsonStr3);
-
-                                        // Getting JSON Array node
-
-                                    } catch (JSONException e) {
-                                        e.printStackTrace();
-                                    }
-                                } else {
-                                    Log.e("ServiceHandler", "Couldn't get any data from the url");
-                                }
-                            }
-                            else
-                            {
-                                rr.setList_rr_value(valuesRr);
-                                list_rr.add(rr);
-
-                                valuesRr=new ArrayList<>();
-                                rr=new HistoryRr();
-
-                                hrv.setList_valeur(valuesHrv);
-                                hrv.setPnn50(pnn50);
-                                list_hrv.add(hrv);
-
-                                //Update database pnn50;
-
-                                url_updatePnn50=url_updatePnn50+"?"+"idHistory="+hrv.getIdHistoryHrv()+"&value="+pnn50;
-                                //  url_updatePnn50=url_updatePnn50+"?"+"idHistory="+object_i_rr.getInt("idHistory")+"&value="+pnn50;
-
-                                jsonStr2=sh.makeServiceCall(url_updatePnn50,ServiceHandler.GET);
-
-                                if (jsonStr2 != null) {
-                                    try {
-                                        JSONObject jsonObj = new JSONObject(jsonStr2);
-
-                                    } catch (JSONException e) {
-                                        e.printStackTrace();
-                                    }
-                                } else {
-                                    Log.e("ServiceHandler", "Couldn't get any data from the url");
-                                }
-
-                                //
-                                pnn50=0;
-                                valuesHrv=new ArrayList<>();
-                                hrv=new HistoryHrv();
-
-                                object_i_rr=array_json_rr.getJSONObject(i);
-
-                                id=object_i_rr.getInt("idHistory");
-
-                                rr.setIdHistoryRr(id);
-
-                                RrValue r = new RrValue();
-
-                                r.setValue(object_i_rr.getDouble("value"));
-
-                                //     r.setTime(object_i_rr.getInt("time"));
-
-                                valuesRr.add(r);
-
-                                //        hrv.setIdHistoryHrv(object_i_rr.getInt("idHistory"));
-
-
-                                hrv.setIdHistoryHrv(id);
-                            }
-
-                        }
-
-                        if(i==array_json_rr.length()-1)
-                        {
-
-                            hrv.setList_valeur(valuesHrv);
-                            hrv.setPnn50(pnn50);
-                            list_hrv.add(hrv);
-
-                            url_updatePnn50=url_updatePnn50+"?"+"idHistory="+hrv.getIdHistoryHrv()+"&value="+pnn50;
-                            //  url_updatePnn50=url_updatePnn50+"?"+"idHistory="+object_i_rr.getInt("idHistory")+"&value="+pnn50;
-
-
-                            jsonStr2=sh.makeServiceCall(url_updatePnn50,ServiceHandler.GET);
-
-                            if (jsonStr2 != null) {
-                                try {
-                                    JSONObject jsonObj = new JSONObject(jsonStr2);
-
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                Log.e("ServiceHandler", "Couldn't get any data from the url");
-                            }
-
-
-
-                        }
+                        historyRr.getList_rr_value().add(rrValue);
                     }
+                } catch (JSONException e) {
+                    Log.e("GetHistory", "Failed to parse history", e);
                 }
-                catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                Log.e("ServiceHandler", "Couldn't get any data from the url");
             }
+            Integer[] keys = signals.keySet().toArray(new Integer[signals.size()]);
+            Arrays.sort(keys);
+            list_rr = new ArrayList<>();
+            for (int i : keys) {
+                list_rr.add(signals.get(i));
+            }
+            list_hrv = new ArrayList<>();
+            for (HistoryRr historyRr : list_rr) {
+                HistoryHrv historyHrv = new HistoryHrv(historyRr);
+                list_hrv.add(historyHrv);
+            }
+            url_InsertHrv = "http://"+ip+"/addHRV.php";
+            url_updatePnn50 = "http://"+ip+"/updatePNN.php";
+            for (HistoryHrv historyHrv : list_hrv) {
+                for (HrvValue value: historyHrv.getList_valeur()) {
+                    String url = url_InsertHrv + "?" + "idHistory=" + historyHrv.getIdHistoryHrv() + "&value=" + value.getValue() + "&pnn50=0";
+                    sh.makeServiceCall(url, ServiceHandler.GET);
+                }
 
+                String url = url_updatePnn50+"?"+"idHistory="+historyHrv.getIdHistoryHrv()+"&value="+historyHrv.getPnn50();
+                sh.makeServiceCall(url, ServiceHandler.GET);
+            }
             return null;
         }
 
@@ -872,7 +749,7 @@ public class MainFragment extends Fragment{
             super.onPreExecute();
             // Showing progress dialog
             pDialog = new ProgressDialog(rootView.getContext());
-            pDialog.setMessage("Please wait...");
+            pDialog.setMessage("Please wait...GetMaladi");
             pDialog.setCancelable(false);
             pDialog.show();
 
@@ -933,7 +810,7 @@ public class MainFragment extends Fragment{
                             }
                             else
                             {
-                                m.setList_Ingredient(symptomesMaladie);
+                                m.setList_symptomes(symptomesMaladie);
                                 list_maladie.add(m);
 
                                 symptomesMaladie=new ArrayList<>();
@@ -979,7 +856,7 @@ public class MainFragment extends Fragment{
         id_hrv_malade=id_hrv;
         if(maladie_position==-1)
         {
-            maladie_nom="bloc auriculo-ventriculaire";
+            maladie_nom="Bloc Auriculo-Ventriculaire";
         }
         else
         {
@@ -1004,7 +881,7 @@ public class MainFragment extends Fragment{
             super.onPreExecute();
             // Showing progress dialog
             pDialog = new ProgressDialog(rootView.getContext());
-            pDialog.setMessage("Please wait...");
+            pDialog.setMessage("Please wait...InsertMaladi");
             pDialog.setCancelable(false);
             pDialog.show();
 
@@ -1022,8 +899,15 @@ public class MainFragment extends Fragment{
             String jsonStr;
             String oldUsername= sharedPreferences.getString("username", "rien");
 
-            url_InsertMaladie=url_InsertMaladie+"?"+"idHistory="+id_hrv_malade+"&nom="+maladie_nom;
-            jsonStr=sh.makeServiceCall(url_InsertMaladie,ServiceHandler.GET);
+            try {
+                maladie_nom = URLEncoder.encode(maladie_nom, "UTF-8");
+            } catch (UnsupportedEncodingException e) {}
+
+            String query = "idHistory="+id_hrv_malade+"&nom="+maladie_nom;
+
+            String url = url_InsertMaladie+"?"+ query;
+
+            jsonStr=sh.makeServiceCall(url,ServiceHandler.GET);
 
             if (jsonStr != null) {
                 try {

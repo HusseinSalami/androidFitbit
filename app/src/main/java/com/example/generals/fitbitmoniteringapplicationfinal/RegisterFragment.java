@@ -69,12 +69,15 @@ public class RegisterFragment extends Fragment {
 
     private ProgressDialog pDialog=null;
     private static String url_validate = "http://192.168.43.103/validate.php";
-    private static String url_getUser = "http://192.168.0.67/getCredentials.php";
+    private static String url_getUser = "http://192.168.43.103/getCredentials.php";
     private static String url_setUser = "http://192.168.43.103/editUser.php";
     UserModel userModel=null;
     JSONObject object_i=null;
     boolean username_validate=false;
     String usernameValue;
+    String passwordValue;
+    String ageValue;
+
     String sexText;
     RadioButton male;
     RadioButton female;
@@ -85,7 +88,7 @@ public class RegisterFragment extends Fragment {
         usernameValue="";
         profile=(ImageView)rootView.findViewById(R.id.profile_image);
         url_validate = "http://192.168.43.103/validate.php";
-        url_getUser = "http://192.168.0.67/getCredentials.php";
+        url_getUser = "http://192.168.43.103/getCredentials.php";
         url_setUser = "http://192.168.43.103/editUser.php";
         male=(RadioButton) rootView.findViewById(R.id.radioMale);
         female=(RadioButton) rootView.findViewById(R.id.radioFemale);
@@ -152,9 +155,10 @@ public class RegisterFragment extends Fragment {
                        {
                            //je vais remplir la base de donner avec les nouveaux data donc je vais devoir faire un insert et reavoir un resultat
                            // si cest valide donc je vais remplir;
-                    /*
-                           usernameValue=username.getText().toString();
 
+                           usernameValue=username.getText().toString();
+                            passwordValue=password.getText().toString();
+                           ageValue=age.getText().toString();
                            try {
                                Void str_result=new UsernameValidate(context).execute().get();
                            } catch (InterruptedException e) {
@@ -163,7 +167,7 @@ public class RegisterFragment extends Fragment {
                                e.printStackTrace();
                            }
                            if(username_validate==true) {
-                              */
+
                                userModel = new UserModel();
                                userModel.setUsername(username.getText().toString());
                                userModel.setAge(Integer.parseInt(age.getText().toString()));
@@ -194,13 +198,13 @@ public class RegisterFragment extends Fragment {
 
                                main_manager.beginTransaction().replace(R.id.container, mainFragment).commit();
 
-                      /*     }
+                           }
                            else
                            {
                                Snackbar.make(view, "unvalid username", Snackbar.LENGTH_LONG)
                                        .setAction("Action", null).show();
                            }
-                           */
+
                        }
                }
            });
@@ -220,10 +224,16 @@ public class RegisterFragment extends Fragment {
             EditText password=(EditText) rootView.findViewById(R.id.passwordId);
             EditText age=(EditText) rootView.findViewById(R.id.ageId);
 
-            new GetUser(context).execute();
+            try {
+                Void strg= new GetUser(context).execute().get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
             username.setText(userModel.getUsername());
             password.setText(userModel.getPassword());
-            age.setText(userModel.getAge());
+            age.setText(""+userModel.getAge());
 
             if(userModel.getSexe().equals("male"))
             {
@@ -324,7 +334,7 @@ public class RegisterFragment extends Fragment {
             super.onPreExecute();
             // Showing progress dialog
             pDialog = new ProgressDialog(rootView.getContext());
-            pDialog.setMessage("Please wait...");
+            pDialog.setMessage("Please wait...4");
             pDialog.setCancelable(false);
             pDialog.show();
 
@@ -399,7 +409,7 @@ public class RegisterFragment extends Fragment {
             super.onPreExecute();
             // Showing progress dialog
             pDialog = new ProgressDialog(rootView.getContext());
-            pDialog.setMessage("Please wait...");
+            pDialog.setMessage("Please wait...3");
             pDialog.setCancelable(false);
             pDialog.show();
 
@@ -423,14 +433,17 @@ public class RegisterFragment extends Fragment {
                     JSONObject jsonObj = new JSONObject(jsonStr);
 
                     // Getting JSON Array node
+                    JSONArray array_json =jsonObj.getJSONArray("data");
+                    JSONObject object_i=array_json.getJSONObject(0);
+
 
                     userModel=new UserModel();
 
 
-                    userModel.setAge(jsonObj.getInt("age"));
-                    userModel.setUsername(jsonObj.getString("username"));
-                    userModel.setSexe(jsonObj.getString("sexe"));
-                    userModel.setPassword(jsonObj.getString("password"));
+                    userModel.setAge(object_i.getInt("age"));
+                    userModel.setUsername(object_i.getString("username"));
+                    userModel.setSexe(object_i.getString("sexe"));
+                    userModel.setPassword(object_i.getString("password"));
 
 
                 } catch (JSONException e) {
@@ -468,10 +481,10 @@ public class RegisterFragment extends Fragment {
         protected void onPreExecute() {
             super.onPreExecute();
             // Showing progress dialog
-            pDialog = new ProgressDialog(rootView.getContext());
-            pDialog.setMessage("Please wait...");
-            pDialog.setCancelable(false);
-            pDialog.show();
+          //  pDialog = new ProgressDialog(rootView.getContext());
+          //  pDialog.setMessage("Please wait...2");
+          //  pDialog.setCancelable(false);
+           // pDialog.show();
 
         }
 
@@ -486,8 +499,11 @@ public class RegisterFragment extends Fragment {
             // Making a request to url and getting response
             // fix the url to retrieve the history for this user having id id1;
 
-            url_validate=url_validate+"?username="+usernameValue;
-            String jsonStr = sh.makeServiceCall(url_validate, ServiceHandler.GET);
+            String urlValidate=url_validate+"?username="+usernameValue+"&password="+passwordValue+"&age="+ageValue;
+
+ //           url_validate=url_validate+"?username="+usernameValue+"&password="+passwordValue+"&age="+ageValue;
+
+            String jsonStr = sh.makeServiceCall(urlValidate, ServiceHandler.GET);
 
             Log.d("Response: ", "> " + jsonStr);
 
@@ -514,8 +530,8 @@ public class RegisterFragment extends Fragment {
         protected void onPostExecute(Void result) {
             super.onPostExecute(result);
 
-            if (pDialog.isShowing())
-                pDialog.dismiss();
+         //   if (pDialog.isShowing())
+          //      pDialog.dismiss();
 
         }
     }

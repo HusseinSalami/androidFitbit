@@ -1,5 +1,7 @@
 package com.example.generals.fitbitmoniteringapplicationfinal;
 
+import android.util.Log;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -45,6 +47,7 @@ public class ServiceHandler {
     public String makeServiceCall(String url, int method,
                                   List<NameValuePair> params) {
         try {
+            Log.v("ServiceHandler", url);
             // http client
             DefaultHttpClient httpClient = new DefaultHttpClient();
             HttpEntity httpEntity;

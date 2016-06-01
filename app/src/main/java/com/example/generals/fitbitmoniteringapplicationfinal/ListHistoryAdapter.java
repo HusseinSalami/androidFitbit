@@ -17,7 +17,7 @@ public class ListHistoryAdapter extends BaseAdapter {
     Context context;
     LayoutInflater inflater;
     private List<History> list;
-    ButtonListenerHistory buttonListenerHistory;
+    ButtonListenerHistory buttonListenerHistory=null;
 
     public ListHistoryAdapter(Context context,List<History> list)
     {
